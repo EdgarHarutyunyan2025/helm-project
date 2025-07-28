@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: edo1997edo/api_front:v2
+          image: edo1997edo/api_front:v8
           ports:
             - containerPort: 80
 ---
