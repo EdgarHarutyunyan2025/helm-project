@@ -1,0 +1,190 @@
+---
+# Source: App-HelmChart/templates/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-secret
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: "root"
+---
+# Source: App-HelmChart/templates/config_back.yaml
+#apiVersion: v1
+#kind: ConfigMap
+#metadata:
+#  name: back-env
+#data:
+#    DB_HOST         : db
+#    DB_PORT         : "5432"
+#    DB_USERNAME     : postgres
+#    DB_DATABASE     : devops_lessons
+#    PORT            : "7000"
+#    HOST            : "0.0.0.0"
+#    NODE_ENV        : development
+#    APP_NAME        : Lessons
+#    APP_DESCRIPTION : Devops lessons REST API
+#
+#
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: back-env
+data:
+    APP_DESCRIPTION: "Devops lessons REST API"
+    APP_NAME: "Lessons"
+    DB_DATABASE: "devops_lessons"
+    DB_HOST: "db"
+    DB_PORT: "5432"
+    DB_USERNAME: "postgres"
+    HOST: "0.0.0.0"
+    NODE_ENV: "development"
+    PORT: "7000"
+---
+# Source: App-HelmChart/templates/storageClass.yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: my-dynamic-sc
+provisioner: ebs.csi.aws.com
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+parameters:
+  type: gp3
+  fsType: ext4
+---
+# Source: App-HelmChart/templates/services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: back-svc
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 7000
+      targetPort: 7000
+---
+# Source: App-HelmChart/templates/services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+# Source: App-HelmChart/templates/deploy.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox
+          command: ['sh', '-c', 'until nc -z db 5432; do echo "Waiting for postgres..."; sleep 2; done']
+      containers:
+        - name: backend
+          image: edo1997edo/my_back:v1
+          ports:
+            - containerPort: 7000
+          envFrom:
+            - configMapRef:
+                name: back-env
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: POSTGRES_PASSWORD
+          readinessProbe:
+            tcpSocket:
+              port: 7000
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          
+          livenessProbe:
+            tcpSocket:
+              port: 7000
+            initialDelaySeconds: 2
+            periodSeconds: 5
+---
+# Source: App-HelmChart/templates/deploy.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:14
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: devops_lessons
+            - name: POSTGRES_USER
+              value: postgres
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data/pgdata
+      volumes:
+        - name: postgres-storage
+          emptyDir: {}
+---
+# Source: App-HelmChart/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: myapp.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: front-svc
+                port:
+                  number: 3000
+          - path: /api(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: back-svc
+                port:
+                  number: 7000

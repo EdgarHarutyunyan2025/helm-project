@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      {{- if .Values.initContainerEnabled | default false }}
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox
+          command: ['sh', '-c', 'until nc -z db 5432; do echo "Waiting for postgres..."; sleep 2; done']
+      {{- end }}
+      containers:
+        - name: backend
+          image: {{ .Values.image }}
+          ports:
+            - containerPort: {{ .Values.containerPort }}
+          {{- if .Values.envConfigMap.enabled }}
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.envConfigMap.backEnvConfigMap }}
+          {{- end }}
+          {{- if .Values.secretKeyRefEnabled }}
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.name }}
+                  key: POSTGRES_PASSWORD
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.containerPort }}
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.containerPort }}
+            initialDelaySeconds: 2
+            periodSeconds: 5
+
+          {{- end }}
+
+---
+{{- if .Values.db.enabled | default false }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db
+spec:
+  replicas: {{ .Values.db.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.db.matchLabels }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.db.matchLabels }}
+    spec:
+      containers:
+        - name: postgres
+          image: {{ .Values.db.image }}
+          ports:
+            - containerPort: {{ .Values.db.containerPort }}
+          {{- if .Values.secretKeyRefEnabled }}
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.db.env.POSTGRES_DB }}
+            - name: POSTGRES_USER
+              value: {{ .Values.db.env.POSTGRES_USER }}
+            - name: PGDATA
+              value: {{ .Values.db.env.PGDATA }}
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: POSTGRES_PASSWORD
+          {{- end }}
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: {{ .Values.db.env.PGDATA }}
+      volumes:
+        {{- if .Values.pvc.enabled }}
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: {{ .Values.pvc.claimName }}
+        {{- else }}
+        - name: postgres-storage
+          emptyDir: {}
+        {{- end }}
+{{- end }}
+

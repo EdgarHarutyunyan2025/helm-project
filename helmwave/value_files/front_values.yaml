@@ -1,0 +1,20 @@
+replicas: 1
+image: edo1997edo/api_front:v5
+containerPort: 80
+servicePort: 3000
+serviceName: front-svc
+storageClass:
+  enabled: false
+db:
+  enabled: false
+pvc:
+  enabled: false
+ingress:
+  enabled: false
+envConfigMap:
+  enabled: false
+configMap:
+  enabled: false
+secret:
+   enabled: false
+secretKeyRefEnabled: false

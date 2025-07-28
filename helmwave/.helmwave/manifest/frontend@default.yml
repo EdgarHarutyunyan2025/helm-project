@@ -1,0 +1,51 @@
+---
+# Source: App-HelmChart/templates/services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: front-svc
+spec:
+  selector:
+    app: frontend
+  ports:
+    - port: 3000
+      targetPort: 80
+---
+# Source: App-HelmChart/templates/deploy.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: backend
+          image: edo1997edo/api_front:v2
+          ports:
+            - containerPort: 80
+---
+# Source: App-HelmChart/templates/config_back.yaml
+#apiVersion: v1
+#kind: ConfigMap
+#metadata:
+#  name: back-env
+#data:
+#    DB_HOST         : db
+#    DB_PORT         : "5432"
+#    DB_USERNAME     : postgres
+#    DB_DATABASE     : devops_lessons
+#    PORT            : "7000"
+#    HOST            : "0.0.0.0"
+#    NODE_ENV        : development
+#    APP_NAME        : Lessons
+#    APP_DESCRIPTION : Devops lessons REST API
+#
+#

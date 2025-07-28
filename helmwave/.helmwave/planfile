@@ -1,0 +1,67 @@
+project: 'Example: apps per own namespace'
+version: 0.41.1
+monitors: []
+repositories: []
+registries: []
+releases:
+    - chart:
+        name: ../helm-chart/
+        ca_file: ""
+        cert_file: ""
+        key_file: ""
+        keyring: ""
+        repo_url: ""
+        username: ""
+        password: ""
+        version: ""
+        insecure: false
+        verify: false
+        pass_credentials: false
+        plain_http: false
+        skip_dependency_update: false
+      name: frontend
+      namespace: default
+      values:
+        - src: ./value_files/front_values.yaml
+          dst: .helmwave/values/frontend@default/8f09bd34d8b2777b8ef60e2bc22dba62.yml
+          renderer: sprig
+          strict: false
+      tags:
+        - frontend@default
+      timeout: 1m0s
+      wait: true
+    - chart:
+        name: ../helm-chart/
+        ca_file: ""
+        cert_file: ""
+        key_file: ""
+        keyring: ""
+        repo_url: ""
+        username: ""
+        password: ""
+        version: ""
+        insecure: false
+        verify: false
+        pass_credentials: false
+        plain_http: false
+        skip_dependency_update: false
+      name: backend
+      namespace: default
+      values:
+        - src: ./value_files/back_values.yaml
+          dst: .helmwave/values/backend@default/6ded5be6a01517273a523fc2452f02be.yml
+          renderer: sprig
+          strict: false
+      tags:
+        - backend@default
+      timeout: 1m0s
+      wait: true
+lifecycle:
+    pre_build: []
+    post_build: []
+    pre_up: []
+    post_up: []
+    pre_rollback: []
+    post_rollback: []
+    pre_down: []
+    post_down: []

@@ -1,0 +1,33 @@
+{{- if .Values.ingress.enabled | default false }}
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.ingress.name }}
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: {{ .Values.ingress.ingressClassName }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          {{- if .Values.ingress.front_svc.enabled }}
+          - path: {{ .Values.ingress.front_svc.path }}
+            pathType: {{ .Values.ingress.front_svc.pathType }}
+            backend:
+              service:
+                name: {{ .Values.ingress.front_svc.serviceName }}
+                port:
+                  number: {{ .Values.ingress.front_svc.frontsvcport }}
+          {{- end }}
+          {{- if .Values.ingress.back_svc.enabled }}
+          - path: /api(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ .Values.ingress.back_svc.serviceName }}
+                port:
+                  number: {{ .Values.ingress.back_svc.servicePort }}
+          {{- end }}
+{{- end }}

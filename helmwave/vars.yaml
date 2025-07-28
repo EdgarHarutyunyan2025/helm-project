@@ -1,0 +1,12 @@
+releases:
+  - name: frontend
+    frontNamespace: "default"
+    frontChart: ../helm-chart/
+    frontValuesFile: ./value_files/front_values.yaml
+    createNamespaceFront: false
+
+  - name: backend
+    backendNamespace: "default"
+    backendChart: ../helm-chart/
+    backendValuesFile: ./value_files/back_values.yaml
+    createNamespaceBackend: false

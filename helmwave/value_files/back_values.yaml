@@ -1,0 +1,81 @@
+replicas         : 1
+matchLabels      : backend
+image            : edo1997edo/my_back:v1
+containerPort    : 7000
+servicePort      : 7000
+serviceName      : back-svc
+initContainerEnabled: true
+
+secret:
+  enabled: true
+  name: db-secret
+  data:
+    POSTGRES_PASSWORD: root
+
+configMap:
+  enabled: true
+  name: back-env
+  data:
+    DB_HOST         : db
+    DB_PORT         : "5432"
+    DB_USERNAME     : postgres
+    DB_DATABASE     : devops_lessons
+    PORT            : "7000"
+    HOST            : "0.0.0.0"
+    NODE_ENV        : development
+    APP_NAME        : Lessons
+    APP_DESCRIPTION : "Devops lessons REST API"
+
+
+envConfigMap:
+  enabled: true
+  backEnvConfigMap : back-env
+  dbEnvConfigMap : db-env
+
+
+db:
+  enabled        : true
+  replicas       : 1
+  matchLabels    : postgres
+  image          : postgres:14
+  containerPort  : 5432
+  dbEnvConfigMap : db-env
+  env:
+    POSTGRES_DB: devops_lessons
+    POSTGRES_USER: postgres
+    PGDATA: /var/lib/postgresql/data/pgdata
+
+
+pvc :
+  enabled    : false
+  claimName  : db-pvc
+  size       : 1Gi
+  accessModes:
+    - ReadWriteOnce
+
+storageClass:
+  enabled             : true
+  name                : my-dynamic-sc
+  provisioner         : ebs.csi.aws.com
+  volumeBindingMode   : Immediate
+  allowVolumeExpansion: true
+  type                : gp3
+  fsType              : ext4
+
+secretKeyRefEnabled: true
+
+ingress:
+  enabled: true
+  name: my-ingress
+  host: myapp.local
+  ingressClassName: nginx
+  front_svc:
+    enabled: true
+    pathType: Prefix
+    path: /
+    serviceName: front-svc
+    frontsvcport: 3000
+  back_svc:
+    enabled: true
+    serviceName: back-svc
+    servicePort: 7000

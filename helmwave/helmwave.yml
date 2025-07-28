@@ -1,0 +1,25 @@
+project: "Example: apps per own namespace"
+version: "0.41.1"
+
+releases:
+  - name: frontend
+    namespace: default
+    chart:
+      name: ../helm-chart/
+    values:
+      - ./value_files/front_values.yaml
+    create_namespace: false
+    wait: true
+    timeout: "1m"
+    atomic: false
+  - name: backend
+    namespace: default
+    chart:
+      name: ../helm-chart/
+    values:
+      - ./value_files/back_values.yaml
+    create_namespace: false
+    wait: true
+    timeout: "1m"
+    atomic: false
+
