@@ -1,5 +1,5 @@
 replicas: 1
-image: edo1997edo/api_front:v6
+image: edo1997edo/api_front:v7
 containerPort: 80
 servicePort: 3000
 serviceName: front-svc
