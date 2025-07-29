@@ -15,4 +15,3 @@ releases:
     timeout: "1m"
     atomic: false
 {{- end }}
-

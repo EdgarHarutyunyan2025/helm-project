@@ -22,4 +22,3 @@ releases:
     wait: true
     timeout: "1m"
     atomic: false
-
